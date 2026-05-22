@@ -1,0 +1,1518 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Valoración Preoperatoria — Sistema Integrado</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+:root {
+  --bg:#f0f2f5;--surface:#fff;--surface2:#f8f9fb;--border:#d1d9e0;--border-light:#e8ecf0;
+  --primary:#1a5fa8;--primary-dark:#134980;--primary-light:#e8f0fb;
+  --accent:#0d9488;--accent-light:#e0f5f3;
+  --danger:#dc2626;--danger-light:#fef2f2;
+  --warn:#d97706;--warn-light:#fffbeb;
+  --success:#16a34a;--success-light:#dcfce7;
+  --text:#1e293b;--text2:#475569;--text3:#94a3b8;
+  --radius:8px;--shadow:0 1px 3px rgba(0,0,0,.08);--shadow-md:0 4px 12px rgba(0,0,0,.1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5}
+
+/* HEADER */
+.app-header{background:var(--primary);color:#fff;padding:0 16px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:200;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.app-header h1{font-size:14px;font-weight:600;letter-spacing:.02em}
+.header-left{display:flex;align-items:center;gap:12px}
+.header-actions{display:flex;gap:8px;align-items:center}
+
+/* SYNC STATUS */
+.sync-status{display:flex;align-items:center;gap:6px;font-size:11px;padding:4px 10px;border-radius:20px;background:rgba(255,255,255,.15);color:#fff}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:#94a3b8;flex-shrink:0}
+.sync-dot.connected{background:#4ade80;animation:pulse 2s infinite}
+.sync-dot.saving{background:#fbbf24;animation:spin .8s linear infinite}
+.sync-dot.error{background:#f87171}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border-radius:var(--radius);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;border:none;transition:all .15s;white-space:nowrap}
+.btn-primary{background:#fff;color:var(--primary)}
+.btn-primary:hover{background:#e8f0fb}
+.btn-ghost{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3)}
+.btn-ghost:hover{background:rgba(255,255,255,.25)}
+.btn-accent{background:var(--accent);color:#fff}
+.btn-accent:hover{background:#0b8077}
+.btn-success{background:var(--success);color:#fff}
+.btn-success:hover{background:#15803d}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-warn{background:var(--warn);color:#fff}
+.btn-outline{background:transparent;color:var(--primary);border:1.5px solid var(--primary)}
+.btn-outline:hover{background:var(--primary-light)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* LAYOUT */
+.main-layout{display:grid;grid-template-columns:1fr 300px;gap:16px;max-width:1280px;margin:0 auto;padding:16px}
+@media(max-width:900px){.main-layout{grid-template-columns:1fr}.sidebar{order:-1}}
+
+/* CARD */
+.card{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border-light);box-shadow:var(--shadow);margin-bottom:14px;overflow:hidden}
+.card-header{background:var(--primary);color:#fff;padding:9px 14px;display:flex;align-items:center;gap:8px;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.07em}
+.card-body{padding:14px}
+
+/* PATIENT HEADER STRIP */
+.patient-strip{background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.patient-strip-info{display:flex;flex-direction:column;gap:2px}
+.patient-strip-info .pname{font-size:15px;font-weight:700}
+.patient-strip-info .pmeta{font-size:11px;opacity:.8}
+.patient-strip-badges{display:flex;gap:6px;flex-wrap:wrap}
+.badge{padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;background:rgba(255,255,255,.2);color:#fff}
+.badge.saved{background:#4ade80;color:#052e16}
+.badge.modified{background:#fbbf24;color:#451a03}
+.badge.unsaved{background:rgba(255,255,255,.15);color:#fff}
+
+/* TABS */
+.tabs{display:flex;gap:2px;border-bottom:2px solid var(--primary);margin-bottom:14px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tabs::-webkit-scrollbar{height:3px}
+.tabs::-webkit-scrollbar-thumb{background:var(--border)}
+.tab-btn{padding:7px 12px;font-size:12px;font-weight:600;cursor:pointer;border:none;background:transparent;font-family:inherit;color:var(--text2);border-radius:6px 6px 0 0;transition:all .15s;white-space:nowrap;flex-shrink:0}
+.tab-btn.active{background:var(--primary);color:#fff}
+.tab-btn:hover:not(.active){background:var(--primary-light)}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* FORM */
+.form-grid{display:grid;gap:10px}
+.form-grid-2{grid-template-columns:1fr 1fr}
+.form-grid-3{grid-template-columns:1fr 1fr 1fr}
+.form-grid-4{grid-template-columns:repeat(4,1fr)}
+@media(max-width:600px){.form-grid-3,.form-grid-4{grid-template-columns:1fr 1fr}.form-grid-2{grid-template-columns:1fr}}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-group.span-2{grid-column:span 2}
+.form-group.span-full{grid-column:1/-1}
+label{font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.05em}
+input[type=text],input[type=number],input[type=date],input[type=time],input[type=datetime-local],select,textarea{
+  padding:7px 10px;border:1.5px solid var(--border);border-radius:6px;font-family:inherit;font-size:13px;color:var(--text);background:var(--surface);transition:border-color .15s,box-shadow .15s;width:100%}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(26,95,168,.12)}
+textarea{resize:vertical;min-height:60px}
+.input-computed{background:var(--primary-light);border-color:var(--primary);color:var(--primary-dark);font-weight:600;font-family:'IBM Plex Mono',monospace}
+
+/* ANTECEDENTE ROWS */
+.ant-row{display:grid;grid-template-columns:170px 66px 1fr;gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid var(--border-light)}
+.ant-row:last-child{border-bottom:none}
+.ant-label{font-size:12px;font-weight:500;color:var(--text)}
+.ant-toggle{display:flex;gap:3px}
+.ant-toggle button{flex:1;padding:4px 6px;border-radius:4px;border:1.5px solid var(--border);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;background:var(--surface);color:var(--text2);transition:all .15s}
+.ant-toggle button.act-si{background:var(--danger);border-color:var(--danger);color:#fff}
+.ant-toggle button.act-no{background:var(--accent);border-color:var(--accent);color:#fff}
+.ant-detail{display:none}
+.ant-detail.vis{display:block}
+.ant-detail input,.ant-detail select{font-size:11px;padding:4px 8px}
+
+/* RISK CARDS */
+.risk-card{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border-light);box-shadow:var(--shadow);margin-bottom:10px;overflow:hidden}
+.risk-header{padding:9px 12px;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.06em;display:flex;justify-content:space-between;align-items:center}
+.risk-score{font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:700;text-align:center;padding:6px 0}
+.risk-label{text-align:center;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;margin:0 auto 6px;display:inline-block}
+.risk-body{padding:10px 12px;text-align:center}
+.risk-detail{font-size:11px;color:var(--text2);margin-top:6px;text-align:left}
+.risk-low{background:#dcfce7;color:#166534}
+.risk-mod{background:#fef3c7;color:#92400e}
+.risk-high{background:#fee2e2;color:#991b1b}
+.risk-vhigh{background:#7f1d1d;color:#fff}
+.progress-wrap{background:#e2e8f0;border-radius:4px;height:5px;margin:6px 0;overflow:hidden}
+.progress-bar{height:100%;border-radius:4px;transition:width .4s,background .3s}
+
+/* LABS */
+.lab-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(95px,1fr));gap:8px}
+.lab-item{display:flex;flex-direction:column;gap:3px}
+.lab-item label{font-size:10px}
+.lab-item input{padding:5px 7px;font-size:12px;font-family:'IBM Plex Mono',monospace}
+.lab-abn{border-color:var(--danger)!important;background:#fff5f5!important}
+
+/* ASA */
+.asa-grid{display:flex;gap:5px;flex-wrap:wrap}
+.asa-btn{padding:5px 10px;border-radius:6px;border:2px solid var(--border);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;background:var(--surface);color:var(--text2);transition:all .15s}
+.asa-btn.active{background:var(--primary);border-color:var(--primary);color:#fff}
+
+/* ECG */
+.ecg-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+
+/* INDICACIONES */
+.ind-section{background:var(--surface2);border-radius:6px;padding:10px;margin-bottom:8px;border-left:3px solid var(--primary)}
+.ind-section.trans{border-left-color:var(--accent)}
+.ind-section.post{border-left-color:var(--warn)}
+.ind-title{font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text2);margin-bottom:6px}
+
+/* MODAL OVERLAY */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:none;align-items:center;justify-content:center;padding:16px}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:12px;width:100%;max-width:680px;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.modal-header{background:var(--primary);color:#fff;padding:14px 18px;display:flex;justify-content:space-between;align-items:center}
+.modal-header h2{font-size:14px;font-weight:700}
+.modal-close{background:none;border:none;color:#fff;font-size:20px;cursor:pointer;padding:0 4px;line-height:1}
+.modal-body{padding:16px;overflow-y:auto;flex:1}
+.modal-footer{padding:12px 16px;border-top:1px solid var(--border-light);display:flex;gap:8px;justify-content:flex-end}
+
+/* SEARCH */
+.search-bar{display:flex;gap:8px;margin-bottom:14px}
+.search-bar input{flex:1;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px}
+.search-bar input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(26,95,168,.12)}
+
+/* PATIENT LIST */
+.patient-list{display:flex;flex-direction:column;gap:6px}
+.patient-item{padding:10px 12px;border:1.5px solid var(--border-light);border-radius:8px;cursor:pointer;transition:all .15s;display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}
+.patient-item:hover{border-color:var(--primary);background:var(--primary-light)}
+.patient-item.selected{border-color:var(--primary);background:var(--primary-light)}
+.pi-name{font-weight:600;font-size:13px;color:var(--text)}
+.pi-meta{font-size:11px;color:var(--text2);margin-top:2px}
+.pi-badges{display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+.pi-badge{font-size:10px;padding:2px 8px;border-radius:10px;background:var(--primary-light);color:var(--primary);font-weight:600}
+.pi-date{font-size:10px;color:var(--text3)}
+.empty-state{text-align:center;padding:30px;color:var(--text3)}
+.empty-state .icon{font-size:40px;margin-bottom:8px}
+
+/* TOAST */
+.toast-container{position:fixed;bottom:20px;right:20px;z-index:1000;display:flex;flex-direction:column;gap:8px}
+.toast{padding:12px 16px;border-radius:8px;font-size:13px;font-weight:500;color:#fff;box-shadow:var(--shadow-md);animation:slideIn .3s ease;display:flex;align-items:center;gap:8px;max-width:320px}
+.toast.success{background:#16a34a}
+.toast.error{background:#dc2626}
+.toast.info{background:#1a5fa8}
+.toast.warn{background:#d97706}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes slideOut{to{transform:translateX(100%);opacity:0}}
+
+/* SETUP BANNER */
+.setup-banner{background:var(--warn-light);border:1.5px solid var(--warn);border-radius:8px;padding:12px 14px;margin-bottom:14px;font-size:12px;color:#92400e}
+.setup-banner strong{display:block;margin-bottom:4px;font-size:13px}
+
+/* SECTION DIVIDER */
+.section-div{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);padding:4px 0 8px;grid-column:1/-1;border-bottom:1px solid var(--border-light);margin-bottom:2px}
+
+/* PRINT */
+@media print{
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  body{background:#fff;font-family:Arial,sans-serif;font-size:9pt}
+  .app-header,.sidebar,.tabs,.header-actions,.btn,.modal-overlay,.toast-container,.setup-banner,.patient-strip{display:none!important}
+  .main-layout{display:block!important;max-width:100%;padding:0;margin:0}
+  .screen-only{display:none!important}
+  .print-doc{display:block!important}
+  .card,.risk-card{box-shadow:none;border:none;margin:0}
+  .card-body{padding:0}
+  .card-header{display:none}
+  input,select,textarea{border:none!important;box-shadow:none!important;padding:0!important;background:transparent!important}
+}
+.print-doc{display:none;background:#fff}
+.doc-page{max-width:210mm;margin:0 auto;background:#fff;padding:12mm 14mm 10mm;font-family:Arial,sans-serif;font-size:9pt;color:#000;line-height:1.4}
+.doc-title{text-align:center;font-weight:bold;font-size:11pt;text-decoration:underline;margin-bottom:8px;letter-spacing:.05em}
+.doc-header-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px;margin-bottom:8px;border-bottom:1px solid #000;padding-bottom:6px}
+.doc-field{font-size:8.5pt}
+.doc-field strong{font-weight:bold}
+.doc-section-title{font-weight:bold;text-decoration:underline;margin:7px 0 4px;font-size:9pt}
+.doc-hr{border:none;border-top:1px solid #000;margin:6px 0}
+.doc-firma{margin-top:16px;text-align:center;border-top:1px solid #000;padding-top:4px;font-weight:bold;font-size:9pt}
+</style>
+</head>
+<body>
+
+<!-- ===================== HEADER ===================== -->
+<header class="app-header">
+  <div class="header-left">
+    <span style="font-size:22px">📋</span>
+    <h1>Valoración Preoperatoria Integral</h1>
+  </div>
+  <div class="header-actions">
+    <div class="sync-status" id="syncStatus">
+      <div class="sync-dot" id="syncDot"></div>
+      <span id="syncText">Sin configurar</span>
+    </div>
+    <button class="btn btn-ghost" onclick="openSearch()">🔍 Buscar Paciente</button>
+    <button class="btn btn-ghost" onclick="openSetup()">⚙️ Config</button>
+    <button class="btn btn-primary" onclick="savePaciente()" id="btnSave" disabled>💾 Guardar</button>
+    <button class="btn btn-ghost" onclick="imprimirDoc()">🖨 Imprimir</button>
+  </div>
+</header>
+
+<!-- ===================== PATIENT STRIP ===================== -->
+<div class="patient-strip" id="patientStrip">
+  <div class="patient-strip-info">
+    <div class="pname" id="stripName">— Nuevo Registro —</div>
+    <div class="pmeta" id="stripMeta">Complete los datos del paciente</div>
+  </div>
+  <div class="patient-strip-badges">
+    <span class="badge unsaved" id="statusBadge">● Sin guardar</span>
+    <span class="badge" id="idBadge" style="display:none"></span>
+    <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px" onclick="nuevoRegistro()">+ Nuevo</button>
+  </div>
+</div>
+
+<!-- ===================== MAIN LAYOUT ===================== -->
+<div class="main-layout screen-only">
+
+  <!-- FORM COLUMN -->
+  <div>
+    <div class="tabs">
+      <button class="tab-btn active" onclick="showTab('t-datos')">👤 Datos</button>
+      <button class="tab-btn" onclick="showTab('t-antec')">🏥 Antecedentes</button>
+      <button class="tab-btn" onclick="showTab('t-exfis')">🩺 Exploración</button>
+      <button class="tab-btn" onclick="showTab('t-labs')">🔬 Laboratorios</button>
+      <button class="tab-btn" onclick="showTab('t-estudios')">📡 Estudios</button>
+      <button class="tab-btn" onclick="showTab('t-indicaciones')">📝 Indicaciones</button>
+    </div>
+
+    <!-- TAB DATOS -->
+    <div id="t-datos" class="tab-panel active">
+      <div class="card">
+        <div class="card-header">🏥 Hospital / Servicio</div>
+        <div class="card-body">
+          <div class="form-grid form-grid-3">
+            <div class="form-group"><label>Hospital</label><input type="text" id="hospital" placeholder="Nombre del hospital" oninput="onFormChange()"></div>
+            <div class="form-group"><label>Servicio Solicitante</label><input type="text" id="servicio" placeholder="Ginecología, Cirugía..." oninput="onFormChange()"></div>
+            <div class="form-group"><label>Fecha / Hora Valoración</label><input type="datetime-local" id="fechaHora" oninput="onFormChange()"></div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">👤 Datos del Paciente</div>
+        <div class="card-body">
+          <div class="form-grid form-grid-2">
+            <div class="form-group span-2"><label>Nombre Completo</label><input type="text" id="nombre" placeholder="Apellido Apellido, Nombre" oninput="onFormChange();updateStrip()"></div>
+            <div class="form-group"><label>Expediente</label><input type="text" id="expediente" placeholder="No. expediente" oninput="onFormChange();updateStrip()"></div>
+            <div class="form-group"><label>Edad</label><input type="number" id="edad" placeholder="años" min="0" max="130" oninput="calcularRiesgos();onFormChange();updateStrip()"></div>
+            <div class="form-group"><label>Género</label>
+              <select id="genero" onchange="calcularRiesgos();onFormChange();updateStrip()">
+                <option value="">Seleccionar</option>
+                <option value="Femenino">Femenino</option>
+                <option value="Masculino">Masculino</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Fecha de Nacimiento</label><input type="date" id="fechaNac" oninput="onFormChange()"></div>
+            <div class="form-group span-2"><label>Diagnóstico</label><input type="text" id="diagnostico" placeholder="Diagnóstico preoperatorio" oninput="onFormChange();updateStrip()"></div>
+            <div class="form-group span-2"><label>Cirugía Programada</label><input type="text" id="cirugia" placeholder="Tipo de cirugía" oninput="onFormChange()"></div>
+            <div class="form-group"><label>Tipo de Cirugía (riesgo)</label>
+              <select id="tipoCirugia" onchange="calcularRiesgos();onFormChange()">
+                <option value="bajo">Bajo riesgo</option>
+                <option value="intermedio">Intermedio</option>
+                <option value="alto">Alto riesgo (vascular mayor)</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Tipo de Anestesia</label>
+              <select id="anestesia" onchange="onFormChange()">
+                <option value="LA QUE EL MÉDICO SEÑALE">La que el médico señale</option>
+                <option value="General">General</option>
+                <option value="Regional">Regional / Bloqueo</option>
+                <option value="Local">Local + Sedación</option>
+                <option value="Epidural">Epidural</option>
+              </select>
+            </div>
+            <div class="form-group"><label>¿Urgencia?</label>
+              <select id="esUrgencia" onchange="calcularRiesgos();onFormChange()">
+                <option value="no">No</option>
+                <option value="si">Sí</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">💊 Tratamiento Actual</div>
+        <div class="card-body"><textarea id="tratamiento" rows="3" placeholder="Medicamentos actuales..." oninput="onFormChange()"></textarea></div>
+      </div>
+    </div>
+
+    <!-- TAB ANTECEDENTES -->
+    <div id="t-antec" class="tab-panel">
+      <div class="card">
+        <div class="card-header">🩺 Enfermedades Crónicas</div>
+        <div class="card-body" id="antContainer">
+          <!-- Generated by JS -->
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">🩸 Factores de Riesgo Trombótico (Caprini)</div>
+        <div class="card-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px" id="capriniChecks"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">📝 Otros Antecedentes</div>
+        <div class="card-body"><textarea id="otros-antec" rows="2" placeholder="Otros antecedentes relevantes..." oninput="onFormChange()"></textarea></div>
+      </div>
+    </div>
+
+    <!-- TAB EXPLORACIÓN -->
+    <div id="t-exfis" class="tab-panel">
+      <div class="card">
+        <div class="card-header">⚖️ Signos Vitales y Somatometría</div>
+        <div class="card-body">
+          <div class="form-grid form-grid-4">
+            <div class="form-group"><label>Peso (kg)</label><input type="number" id="peso" placeholder="kg" step="0.1" oninput="calcularIMC();onFormChange()"></div>
+            <div class="form-group"><label>Talla (cm)</label><input type="number" id="talla" placeholder="cm" oninput="calcularIMC();onFormChange()"></div>
+            <div class="form-group"><label>IMC</label><input type="text" id="imc" class="input-computed" readonly></div>
+            <div class="form-group"><label>Clasificación IMC</label><input type="text" id="imc-clasif" class="input-computed" readonly></div>
+            <div class="form-group"><label>TA (mmHg)</label><input type="text" id="ta" placeholder="120/80" oninput="calcularRiesgos();onFormChange()"></div>
+            <div class="form-group"><label>FC (lpm)</label><input type="number" id="fc" placeholder="lpm" oninput="calcularRiesgos();onFormChange()"></div>
+            <div class="form-group"><label>FR (rpm)</label><input type="number" id="fr" placeholder="rpm" oninput="onFormChange()"></div>
+            <div class="form-group"><label>Temp (°C)</label><input type="number" id="temp" placeholder="°C" step="0.1" oninput="onFormChange()"></div>
+            <div class="form-group"><label>SpO₂ (%)</label><input type="number" id="spo2" placeholder="%" min="50" max="100" oninput="calcularRiesgos();onFormChange()"></div>
+          </div>
+          <div style="margin-top:12px">
+            <div class="section-div" style="margin-bottom:8px">Clasificación ASA</div>
+            <div class="asa-grid" id="asaGrid">
+              <button class="asa-btn" onclick="setASA(1)">ASA I</button>
+              <button class="asa-btn" onclick="setASA(2)">ASA II</button>
+              <button class="asa-btn" onclick="setASA(3)">ASA III</button>
+              <button class="asa-btn" onclick="setASA(4)">ASA IV</button>
+              <button class="asa-btn" onclick="setASA(5)">ASA V</button>
+              <button class="asa-btn" onclick="setASA(6)">ASA VI</button>
+            </div>
+            <div id="asa-desc" style="font-size:11px;color:var(--text2);margin-top:6px;padding:7px;background:var(--surface2);border-radius:6px;display:none"></div>
+          </div>
+          <div style="margin-top:12px">
+            <div class="section-div" style="margin-bottom:8px">Exploración por Aparatos</div>
+            <div class="form-grid form-grid-2">
+              <div class="form-group"><label>Cardiopulmonar</label><textarea id="exp-cardio" rows="2" oninput="onFormChange()"></textarea></div>
+              <div class="form-group"><label>Abdomen</label><textarea id="exp-abd" rows="2" oninput="onFormChange()"></textarea></div>
+              <div class="form-group"><label>Extremidades</label><textarea id="exp-ext" rows="2" oninput="onFormChange()"></textarea></div>
+              <div class="form-group"><label>Neurológico</label><textarea id="exp-neuro" rows="2" oninput="onFormChange()"></textarea></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">🏃 Capacidad Funcional (METs)</div>
+        <div class="card-body">
+          <select id="mets" onchange="calcularRiesgos();onFormChange()">
+            <option value="4">≥4 METs — Buena (sube escaleras sin disnea)</option>
+            <option value="1">1-3 METs — Pobre (actividades básicas)</option>
+            <option value="0">Desconocida / No evaluable</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB LABS -->
+    <div id="t-labs" class="tab-panel">
+      <div class="card">
+        <div class="card-header">🔬 Biometría Hemática</div>
+        <div class="card-body">
+          <div class="lab-grid">
+            <div class="lab-item"><label>Hemotipo</label><input type="text" id="lab-hemotipo" placeholder="A+" oninput="onFormChange()"></div>
+            <div class="lab-item"><label>Hb (g/dL)</label><input type="number" id="lab-hb" placeholder="" step="0.1" oninput="checkLabs()"></div>
+            <div class="lab-item"><label>Hto (%)</label><input type="number" id="lab-hto" placeholder="" oninput="checkLabs()"></div>
+            <div class="lab-item"><label>Leucocitos ×10³</label><input type="number" id="lab-leuco" placeholder="" oninput="checkLabs()"></div>
+            <div class="lab-item"><label>Plaquetas ×10³</label><input type="number" id="lab-plaq" placeholder="" oninput="checkLabs()"></div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">⚗️ Química Sanguínea</div>
+        <div class="card-body">
+          <div class="lab-grid">
+            <div class="lab-item"><label>Glucosa mg/dL</label><input type="number" id="lab-gluc" oninput="checkLabs()"></div>
+            <div class="lab-item"><label>Urea mg/dL</label><input type="number" id="lab-urea" oninput="checkLabs()"></div>
+            <div class="lab-item"><label>Creatinina mg/dL</label><input type="number" id="lab-crea" step="0.01" oninput="checkLabs();calcularRiesgos()"></div>
+            <div class="lab-item"><label>Na mEq/L</label><input type="number" id="lab-na" oninput="checkLabs()"></div>
+            <div class="lab-item"><label>K mEq/L</label><input type="number" id="lab-k" step="0.1" oninput="checkLabs()"></div>
+            <div class="lab-item"><label>HbA1c %</label><input type="number" id="lab-hba1c" step="0.1" oninput="onFormChange()"></div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">🩸 Coagulación</div>
+        <div class="card-body">
+          <div class="lab-grid">
+            <div class="lab-item"><label>TP (seg)</label><input type="number" id="lab-tp" step="0.1" oninput="checkLabs()"></div>
+            <div class="lab-item"><label>TTP (seg)</label><input type="number" id="lab-ttp" step="0.1" oninput="checkLabs()"></div>
+            <div class="lab-item"><label>INR</label><input type="number" id="lab-inr" step="0.01" oninput="checkLabs()"></div>
+            <div class="lab-item"><label>Fibrinógeno mg/dL</label><input type="number" id="lab-fibr" oninput="onFormChange()"></div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">🫀 Función Hepática</div>
+        <div class="card-body">
+          <div class="lab-grid">
+            <div class="lab-item"><label>AST U/L</label><input type="number" id="lab-ast" oninput="onFormChange()"></div>
+            <div class="lab-item"><label>ALT U/L</label><input type="number" id="lab-alt" oninput="onFormChange()"></div>
+            <div class="lab-item"><label>BT mg/dL</label><input type="number" id="lab-bili" step="0.1" oninput="onFormChange()"></div>
+            <div class="lab-item"><label>Albumina g/dL</label><input type="number" id="lab-alb" step="0.1" oninput="onFormChange()"></div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">📋 Otras Alteraciones</div>
+        <div class="card-body"><textarea id="lab-otros" rows="2" oninput="onFormChange()"></textarea></div>
+      </div>
+    </div>
+
+    <!-- TAB ESTUDIOS -->
+    <div id="t-estudios" class="tab-panel">
+      <div class="card">
+        <div class="card-header">📷 Radiografía de Tórax</div>
+        <div class="card-body">
+          <div class="form-grid form-grid-2">
+            <div class="form-group"><label>Época</label><input type="text" id="rx-epoca" oninput="onFormChange()"></div>
+            <div class="form-group"><label>Hallazgos</label><input type="text" id="rx-hallazgos" oninput="onFormChange()"></div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">💓 Electrocardiograma</div>
+        <div class="card-body">
+          <div class="ecg-grid">
+            <div class="form-group"><label>Ritmo</label>
+              <select id="ecg-ritmo" onchange="onFormChange()">
+                <option>Sinusal</option><option>FA</option><option>Flutter</option><option>Marcapasos</option><option>Otro</option>
+              </select>
+            </div>
+            <div class="form-group"><label>FC ECG</label><input type="number" id="ecg-fc" oninput="onFormChange()"></div>
+            <div class="form-group"><label>Eje</label><input type="text" id="ecg-eje" oninput="onFormChange()"></div>
+            <div class="form-group"><label>BAV</label>
+              <select id="ecg-bav" onchange="onFormChange()">
+                <option value="NO">NO</option><option>1er grado</option><option>2do grado</option><option>3er grado completo</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Bloqueo Rama Derecha</label>
+              <select id="ecg-brd" onchange="onFormChange()"><option value="NO">NO</option><option>Completo</option><option>Incompleto</option></select>
+            </div>
+            <div class="form-group"><label>Bloqueo Rama Izquierda</label>
+              <select id="ecg-bri" onchange="onFormChange()"><option value="NO">NO</option><option>Completo</option><option>Incompleto</option></select>
+            </div>
+            <div class="form-group"><label>HVI</label>
+              <select id="ecg-hvi" onchange="onFormChange()"><option value="NO">NO</option><option value="SI">SÍ</option></select>
+            </div>
+            <div class="form-group"><label>Q Patológicas</label>
+              <select id="ecg-qpat" onchange="onFormChange()"><option value="NO">NO</option><option value="SI">SÍ</option></select>
+            </div>
+            <div class="form-group span-2"><label>Otras Alteraciones ECG</label><input type="text" id="ecg-otros" oninput="onFormChange()"></div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">🔬 Otros Estudios</div>
+        <div class="card-body"><textarea id="otros-estudios" rows="3" oninput="onFormChange()"></textarea></div>
+      </div>
+    </div>
+
+    <!-- TAB INDICACIONES -->
+    <div id="t-indicaciones" class="tab-panel">
+      <div class="card">
+        <div class="card-header">📋 Indicaciones</div>
+        <div class="card-body">
+          <div class="ind-section">
+            <div class="ind-title">⬅ Preoperatorias</div>
+            <textarea id="ind-pre" rows="5" style="width:100%;font-size:12px;padding:8px;border:1.5px solid var(--border);border-radius:6px;font-family:inherit" oninput="onFormChange()"></textarea>
+          </div>
+          <div class="ind-section trans">
+            <div class="ind-title">⚡ Transoperatorias</div>
+            <textarea id="ind-trans" rows="4" style="width:100%;font-size:12px;padding:8px;border:1.5px solid var(--border);border-radius:6px;font-family:inherit" oninput="onFormChange()"></textarea>
+          </div>
+          <div class="ind-section post">
+            <div class="ind-title">✅ Postoperatorias</div>
+            <textarea id="ind-post" rows="4" style="width:100%;font-size:12px;padding:8px;border:1.5px solid var(--border);border-radius:6px;font-family:inherit" oninput="onFormChange()"></textarea>
+          </div>
+          <button class="btn btn-accent" style="width:100%;justify-content:center;margin-top:8px" onclick="generarIndicaciones()">🔄 Regenerar Indicaciones</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">👨‍⚕️ Médico Responsable</div>
+        <div class="card-body">
+          <div class="form-grid form-grid-2">
+            <div class="form-group"><label>Nombre</label><input type="text" id="medico-nombre" oninput="onFormChange()"></div>
+            <div class="form-group"><label>Cédula</label><input type="text" id="medico-cedula" oninput="onFormChange()"></div>
+            <div class="form-group span-2"><label>Especialidad</label><input type="text" id="medico-esp" oninput="onFormChange()"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div style="position:sticky;top:100px">
+
+      <!-- Setup warning -->
+      <div id="setupWarning" class="setup-banner">
+        <strong>⚠️ Google Sheets no configurado</strong>
+        Haz clic en ⚙️ Config para ingresar tu URL de Apps Script y habilitar guardado en la nube.
+      </div>
+
+      <!-- Risk cards -->
+      <div class="risk-card">
+        <div class="risk-header" style="background:#1a5fa8;color:#fff">
+          <span>📊 RCRI / Cardíaco</span>
+          <span id="rcri-badge" style="background:#fff;color:#1a5fa8;padding:2px 8px;border-radius:10px;font-size:13px">0</span>
+        </div>
+        <div class="risk-body">
+          <div class="risk-score" id="rcri-pct" style="color:#1a5fa8">0.4%</div>
+          <span class="risk-label risk-low" id="rcri-label">Bajo Riesgo</span>
+          <div class="progress-wrap"><div class="progress-bar" id="rcri-bar" style="width:4%;background:#16a34a"></div></div>
+          <div class="risk-detail">
+            <div style="font-weight:700;font-size:11px;margin-bottom:4px">Criterios (RCRI):</div>
+            <ul id="rcri-items" style="list-style:none;padding:0">
+              <li id="rc1" style="font-size:11px;padding:2px 0">○ Cirugía alto riesgo</li>
+              <li id="rc2" style="font-size:11px;padding:2px 0">○ Cardiopatía isquémica</li>
+              <li id="rc3" style="font-size:11px;padding:2px 0">○ Insuf. cardíaca</li>
+              <li id="rc4" style="font-size:11px;padding:2px 0">○ ACV / EIT previo</li>
+              <li id="rc5" style="font-size:11px;padding:2px 0">○ DM insulino-requirente</li>
+              <li id="rc6" style="font-size:11px;padding:2px 0">○ Creatinina &gt;2.0 mg/dL</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="risk-card">
+        <div class="risk-header" style="background:#0d9488;color:#fff">
+          <span>🩸 Caprini / TVP</span>
+          <span id="cap-badge" style="background:#fff;color:#0d9488;padding:2px 8px;border-radius:10px;font-size:13px">0</span>
+        </div>
+        <div class="risk-body">
+          <div class="risk-score" id="cap-nivel" style="color:#0d9488;font-size:16px">Muy Bajo</div>
+          <span class="risk-label risk-low" id="cap-label">0 pts</span>
+          <div class="progress-wrap"><div class="progress-bar" id="cap-bar" style="width:5%;background:#16a34a"></div></div>
+          <div id="cap-rec" style="font-size:11px;color:var(--text2);margin-top:6px;text-align:left"></div>
+        </div>
+      </div>
+
+      <div class="risk-card">
+        <div class="risk-header" style="background:#7c3aed;color:#fff">
+          <span>🫁 ARISCAT / Pulmonar</span>
+          <span id="ariscat-badge" style="background:#fff;color:#7c3aed;padding:2px 8px;border-radius:10px;font-size:13px">0</span>
+        </div>
+        <div class="risk-body">
+          <div class="risk-score" id="ariscat-nivel" style="color:#7c3aed;font-size:18px">Bajo</div>
+          <span class="risk-label risk-low" id="ariscat-label">Score: 0</span>
+          <div class="progress-wrap"><div class="progress-bar" id="ariscat-bar" style="width:5%;background:#16a34a"></div></div>
+        </div>
+      </div>
+
+      <div class="risk-card">
+        <div class="risk-header" style="background:#b45309;color:#fff">
+          <span>⭐ ASA</span>
+          <span id="asa-badge" style="background:#fff;color:#b45309;padding:2px 8px;border-radius:10px;font-size:13px">—</span>
+        </div>
+        <div class="risk-body">
+          <div id="asa-side" style="font-size:11px;color:var(--text2);text-align:left">Seleccione en Exploración</div>
+        </div>
+      </div>
+
+      <div class="risk-card">
+        <div class="risk-header" style="background:#374151;color:#fff">
+          <span>⚖️ IMC</span>
+          <span id="imc-badge" style="background:#fff;color:#374151;padding:2px 8px;border-radius:10px">—</span>
+        </div>
+        <div class="risk-body">
+          <div class="risk-score" id="imc-score" style="color:#374151;font-size:18px">—</div>
+          <span class="risk-label" id="imc-lbl" style="display:none"></span>
+        </div>
+      </div>
+
+      <button class="btn btn-success" style="width:100%;justify-content:center;font-size:13px;padding:10px;margin-bottom:6px" onclick="savePaciente()" id="btnSave2" disabled>
+        💾 Guardar en Google Sheets
+      </button>
+      <button class="btn btn-outline" style="width:100%;justify-content:center;font-size:13px;padding:10px" onclick="imprimirDoc()">
+        🖨 Imprimir / PDF
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== PRINT DOC ===================== -->
+<div class="print-doc" id="print-doc"><div class="doc-page" id="doc-content"></div></div>
+
+<!-- ===================== MODAL: SETUP ===================== -->
+<div class="modal-overlay" id="modalSetup">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>⚙️ Configuración Google Sheets</h2>
+      <button class="modal-close" onclick="closeModal('modalSetup')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="setup-banner" style="margin-bottom:16px">
+        <strong>📋 Instrucciones de configuración (una sola vez):</strong>
+        <ol style="margin-top:8px;padding-left:16px;line-height:2">
+          <li>Ve a <a href="https://script.google.com" target="_blank" style="color:var(--primary)">script.google.com</a> → Nuevo proyecto</li>
+          <li>Pega el código del archivo <strong>codigo_apps_script.gs</strong> que descargaste</li>
+          <li>Clic en <strong>Implementar → Nueva implementación → Web App</strong></li>
+          <li>Ejecutar como: <strong>Yo</strong> | Acceso: <strong>Cualquier persona</strong></li>
+          <li>Autoriza y copia la URL generada</li>
+          <li>Pégala abajo y guarda</li>
+        </ol>
+      </div>
+      <div class="form-group" style="margin-bottom:12px">
+        <label>URL del Apps Script Web App</label>
+        <input type="text" id="appsScriptUrl" placeholder="https://script.google.com/macros/s/.../exec">
+      </div>
+      <div class="form-group">
+        <label>Médico predeterminado (opcional)</label>
+        <input type="text" id="defaultMedico" placeholder="Dr. Juan Pérez">
+      </div>
+      <div class="form-group" style="margin-top:8px">
+        <label>Cédula predeterminada (opcional)</label>
+        <input type="text" id="defaultCedula" placeholder="Número de cédula">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modalSetup')">Cancelar</button>
+      <button class="btn btn-ghost" style="background:var(--surface2);color:var(--text)" onclick="testConnection()">🔌 Probar conexión</button>
+      <button class="btn btn-success" onclick="saveSetup()">✅ Guardar configuración</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL: BUSCAR PACIENTE ===================== -->
+<div class="modal-overlay" id="modalSearch">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>🔍 Buscar Paciente en Google Sheets</h2>
+      <button class="modal-close" onclick="closeModal('modalSearch')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="search-bar">
+        <input type="text" id="searchInput" placeholder="Nombre, expediente o diagnóstico..." oninput="debounceSearch()">
+        <button class="btn btn-primary" style="background:var(--primary);color:#fff" onclick="doSearch()">Buscar</button>
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:12px">
+        <button class="btn" style="font-size:11px;padding:4px 10px;background:var(--surface2);color:var(--text2);border:1.5px solid var(--border)" onclick="loadAll()">📋 Últimos registros</button>
+        <select id="searchField" style="font-size:12px;padding:4px 8px;border:1.5px solid var(--border);border-radius:6px;font-family:inherit">
+          <option value="all">Todos los campos</option>
+          <option value="expediente">Expediente</option>
+          <option value="nombre">Nombre</option>
+        </select>
+      </div>
+      <div id="searchResults">
+        <div class="empty-state">
+          <div class="icon">🔍</div>
+          <div>Busca un paciente por nombre o expediente<br>o carga los últimos registros</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer" id="searchFooter" style="display:none">
+      <button class="btn btn-outline" onclick="closeModal('modalSearch')">Cancelar</button>
+      <button class="btn btn-success" onclick="loadSelected()" id="btnLoadSelected" disabled>📂 Cargar registro seleccionado</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// ====================================================
+//  STATE
+// ====================================================
+const S = {
+  asa: null,
+  ants: {},
+  currentId: null,       // ID del registro cargado
+  isDirty: false,        // hay cambios sin guardar
+  appsScriptUrl: '',
+  selectedSearchId: null
+};
+
+const ANT_DEFS = [
+  {k:'dm',    label:'Diabetes Mellitus',       det:'<select id="dm-tipo" onchange="calcularRiesgos();onFormChange()" style="font-size:11px;padding:4px 6px;width:100%"><option value="T2">Tipo 2 (no insulina)</option><option value="T1">Tipo 1</option><option value="T2insulin">Tipo 2 insulino-requirente</option></select>'},
+  {k:'hta',   label:'Hipertensión Arterial',   det:'<input type="text" id="hta-tiempo" placeholder="Tiempo de evolución" style="font-size:11px;padding:4px 6px;width:100%" oninput="onFormChange()">'},
+  {k:'iam',   label:'IAM Previo',              det:'<input type="text" id="iam-cuando" placeholder="¿Cuándo?" style="font-size:11px;padding:4px 6px;width:100%" oninput="onFormChange()">'},
+  {k:'angina',label:'Angina',                  det:'<select id="angina-ccs" style="font-size:11px;padding:4px 6px;width:100%" onchange="onFormChange()"><option value="1">CCS I</option><option value="2">CCS II</option><option value="3">CCS III</option><option value="4">CCS IV</option></select>'},
+  {k:'icc',   label:'Insuf. Cardíaca (ICC)',   det:'<select id="icc-nyha" onchange="calcularRiesgos();onFormChange()" style="font-size:11px;padding:4px 6px;width:100%"><option value="1">NYHA I</option><option value="2">NYHA II</option><option value="3">NYHA III</option><option value="4">NYHA IV</option></select>'},
+  {k:'valv',  label:'Valvulopatías/Arritmias', det:'<input type="text" id="valv-tipo" placeholder="FA, estenosis..." style="font-size:11px;padding:4px 6px;width:100%" oninput="onFormChange()">'},
+  {k:'acv',   label:'ACV / EVC Previo',        det:'<input type="text" id="acv-cuando" placeholder="¿Cuándo?" style="font-size:11px;padding:4px 6px;width:100%" oninput="onFormChange()">'},
+  {k:'hemo',  label:'Hemoglobinopatías',       det:'<input type="text" id="hemo-tipo" placeholder="Tipo" style="font-size:11px;padding:4px 6px;width:100%" oninput="onFormChange()">'},
+  {k:'hepato',label:'Hepatopatía',             det:'<input type="text" id="hepato-tipo" placeholder="Child-Pugh A/B/C" style="font-size:11px;padding:4px 6px;width:100%" oninput="onFormChange()">'},
+  {k:'erc',   label:'Enf. Renal Crónica',      det:'<select id="erc-etapa" style="font-size:11px;padding:4px 6px;width:100%" onchange="onFormChange()"><option value="3">Etapa 3 (TFG 30-59)</option><option value="4">Etapa 4 (TFG 15-29)</option><option value="5">Etapa 5 / Diálisis</option></select>'},
+  {k:'transfusion',label:'Transfusiones Previas',det:'<input type="text" id="transfusion-cuando" placeholder="¿Cuándo?" style="font-size:11px;padding:4px 6px;width:100%" oninput="onFormChange()">'},
+  {k:'tabaco',label:'Tabaquismo',              det:'<input type="text" id="tabaco-it" placeholder="IT = cigarrillos/día × años / 20" style="font-size:11px;padding:4px 6px;width:100%" oninput="onFormChange()">'},
+  {k:'toxico',label:'Toxicomanías',            det:'<input type="text" id="toxico-cual" placeholder="¿Cuál?" style="font-size:11px;padding:4px 6px;width:100%" oninput="onFormChange()">'},
+  {k:'alergia',label:'Alergias',              det:'<input type="text" id="alergia-cual" placeholder="Especificar" style="font-size:11px;padding:4px 6px;width:100%" oninput="onFormChange()">'},
+  {k:'qx',    label:'Cirugías Previas',        det:'<input type="text" id="qx-cuales" placeholder="Especificar cirugías" style="font-size:11px;padding:4px 6px;width:100%" oninput="onFormChange()">'},
+];
+
+const CAPRINI_CHECKS = [
+  {id:'cap-movilidad', label:'Movilidad reducida / reposo en cama'},
+  {id:'cap-obesidad',  label:'Obesidad (IMC >30)'},
+  {id:'cap-cancer',    label:'Cáncer activo'},
+  {id:'cap-tvp',       label:'TVP / TEP previo'},
+  {id:'cap-trombofilia',label:'Trombofilia conocida'},
+  {id:'cap-embarazo',  label:'Embarazo / puerperio'},
+  {id:'cap-hormonal',  label:'Anticonceptivos orales / TRH'},
+  {id:'cap-varices',   label:'Várices de MMII'},
+];
+
+const ASA_DESC = {
+  1:'Paciente sano, sin enfermedad sistémica',
+  2:'Enfermedad sistémica leve, sin limitación funcional',
+  3:'Enfermedad sistémica grave con limitación funcional',
+  4:'Enfermedad sistémica grave con amenaza constante a la vida',
+  5:'Paciente moribundo, no se espera sobrevivir sin cirugía',
+  6:'Paciente con muerte cerebral, donante de órganos'
+};
+
+// ====================================================
+//  INIT
+// ====================================================
+window.addEventListener('DOMContentLoaded', () => {
+  buildAntContainer();
+  buildCapriniChecks();
+  loadConfig();
+  const now = new Date(); now.setMinutes(now.getMinutes()-now.getTimezoneOffset());
+  document.getElementById('fechaHora').value = now.toISOString().slice(0,16);
+  ANT_DEFS.forEach(a => toggleAnt(a.k,'no'));
+  calcularRiesgos();
+  generarIndicaciones();
+  updateStrip();
+});
+
+function buildAntContainer() {
+  const c = document.getElementById('antContainer');
+  c.innerHTML = ANT_DEFS.map(a => `
+    <div class="ant-row">
+      <span class="ant-label">${a.label}</span>
+      <div class="ant-toggle">
+        <button onclick="toggleAnt('${a.k}','si')" id="${a.k}-si">SÍ</button>
+        <button onclick="toggleAnt('${a.k}','no')" id="${a.k}-no">NO</button>
+      </div>
+      <div class="ant-detail" id="det-${a.k}">${a.det}</div>
+    </div>`).join('');
+}
+
+function buildCapriniChecks() {
+  const c = document.getElementById('capriniChecks');
+  c.innerHTML = CAPRINI_CHECKS.map(ch => `
+    <label style="display:flex;align-items:center;gap:6px;font-size:12px;text-transform:none;letter-spacing:0;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;font-weight:400">
+      <input type="checkbox" id="${ch.id}" onchange="calcularRiesgos();onFormChange()"> ${ch.label}
+    </label>`).join('');
+}
+
+// ====================================================
+//  CONFIG / SETUP
+// ====================================================
+function loadConfig() {
+  const url = localStorage.getItem('aps_url') || '';
+  const medico = localStorage.getItem('default_medico') || '';
+  const cedula = localStorage.getItem('default_cedula') || '';
+  S.appsScriptUrl = url;
+  document.getElementById('appsScriptUrl').value = url;
+  document.getElementById('defaultMedico').value = medico;
+  document.getElementById('defaultCedula').value = cedula;
+  if (medico) document.getElementById('medico-nombre').value = medico;
+  if (cedula) document.getElementById('medico-cedula').value = cedula;
+  if (url) {
+    setSyncStatus('connected','Sheets conectado');
+    document.getElementById('setupWarning').style.display='none';
+    document.getElementById('btnSave').disabled = false;
+    document.getElementById('btnSave2').disabled = false;
+  } else {
+    setSyncStatus('error','Sin configurar');
+  }
+}
+
+function saveSetup() {
+  const url = document.getElementById('appsScriptUrl').value.trim();
+  const medico = document.getElementById('defaultMedico').value.trim();
+  const cedula = document.getElementById('defaultCedula').value.trim();
+  if (!url) { showToast('Ingresa la URL del Apps Script','error'); return; }
+  localStorage.setItem('aps_url', url);
+  localStorage.setItem('default_medico', medico);
+  localStorage.setItem('default_cedula', cedula);
+  S.appsScriptUrl = url;
+  if (medico && !document.getElementById('medico-nombre').value) document.getElementById('medico-nombre').value = medico;
+  if (cedula && !document.getElementById('medico-cedula').value) document.getElementById('medico-cedula').value = cedula;
+  setSyncStatus('connected','Sheets conectado');
+  document.getElementById('setupWarning').style.display='none';
+  document.getElementById('btnSave').disabled = false;
+  document.getElementById('btnSave2').disabled = false;
+  closeModal('modalSetup');
+  showToast('✅ Configuración guardada','success');
+}
+
+async function testConnection() {
+  const url = document.getElementById('appsScriptUrl').value.trim();
+  if (!url) { showToast('Ingresa la URL primero','error'); return; }
+  showToast('🔌 Probando conexión...','info');
+  try {
+    const res = await apiGet(url, {action:'getAll'});
+    if (res && !res.error) showToast('✅ Conexión exitosa con Google Sheets','success');
+    else showToast('❌ Error: '+(res.error||'Respuesta inválida'),'error');
+  } catch(e) {
+    showToast('❌ Error de conexión: '+e.message,'error');
+  }
+}
+
+// ====================================================
+//  TABS
+// ====================================================
+function showTab(id) {
+  const ids = ['t-datos','t-antec','t-exfis','t-labs','t-estudios','t-indicaciones'];
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.tab-btn')[ids.indexOf(id)].classList.add('active');
+}
+
+// ====================================================
+//  ANTECEDENTES
+// ====================================================
+function toggleAnt(k, v) {
+  S.ants[k] = v;
+  const si = document.getElementById(k+'-si');
+  const no = document.getElementById(k+'-no');
+  const det = document.getElementById('det-'+k);
+  if(si) si.className = v==='si'?'act-si':'';
+  if(no) no.className = v==='no'?'act-no':'';
+  if(det) det.className = 'ant-detail'+(v==='si'?' vis':'');
+  calcularRiesgos(); onFormChange();
+}
+
+// ====================================================
+//  ASA
+// ====================================================
+function setASA(n) {
+  S.asa = n;
+  document.querySelectorAll('.asa-btn').forEach((b,i)=>b.className='asa-btn'+(i+1===n?' active':''));
+  document.getElementById('asa-badge').textContent = 'ASA '+n;
+  const desc = ASA_DESC[n];
+  document.getElementById('asa-desc').textContent=desc; document.getElementById('asa-desc').style.display='block';
+  document.getElementById('asa-side').textContent = 'ASA '+n+' — '+desc;
+  onFormChange(); calcularRiesgos();
+}
+
+// ====================================================
+//  IMC
+// ====================================================
+function calcularIMC() {
+  const p=parseFloat(document.getElementById('peso').value);
+  const t=parseFloat(document.getElementById('talla').value);
+  if(!p||!t) return;
+  const imc=(p/((t/100)**2));
+  document.getElementById('imc').value=imc.toFixed(1);
+  let cl,cs; 
+  if(imc<18.5){cl='Bajo peso';cs='risk-mod';}
+  else if(imc<25){cl='Normal';cs='risk-low';}
+  else if(imc<30){cl='Sobrepeso';cs='risk-mod';}
+  else if(imc<35){cl='Obesidad I';cs='risk-high';}
+  else if(imc<40){cl='Obesidad II';cs='risk-high';}
+  else{cl='Obesidad III';cs='risk-vhigh';}
+  document.getElementById('imc-clasif').value=cl;
+  document.getElementById('imc-score').textContent=imc.toFixed(1)+' kg/m²';
+  const lbl=document.getElementById('imc-lbl');
+  lbl.textContent=cl; lbl.className='risk-label '+cs; lbl.style.display='inline-block';
+  document.getElementById('imc-badge').textContent=imc.toFixed(1);
+  if(imc>=30) document.getElementById('cap-obesidad').checked=true;
+  calcularRiesgos();
+}
+
+// ====================================================
+//  RIESGOS
+// ====================================================
+function calcularRiesgos() { calcRCRI(); calcCaprini(); calcARISCAT(); }
+
+function calcRCRI() {
+  let s=0; const items=[false,false,false,false,false,false];
+  if(document.getElementById('tipoCirugia').value==='alto'){s++;items[0]=true;}
+  if(S.ants['iam']==='si'||S.ants['angina']==='si'){s++;items[1]=true;}
+  if(S.ants['icc']==='si'){s++;items[2]=true;}
+  if(S.ants['acv']==='si'){s++;items[3]=true;}
+  const dmT=document.getElementById('dm-tipo')?.value||'';
+  if(S.ants['dm']==='si'&&(dmT==='T1'||dmT==='T2insulin')){s++;items[4]=true;}
+  if(parseFloat(document.getElementById('lab-crea').value)>=2){s++;items[5]=true;}
+  document.getElementById('rcri-badge').textContent=s;
+  const rs=[0.4,0.9,6.6,11.0],ls=['Bajo Riesgo','Bajo-Intermedio','Intermedio-Alto','Alto Riesgo'];
+  const cs=['risk-low','risk-mod','risk-high','risk-vhigh'],bc=['#16a34a','#d97706','#dc2626','#991b1b'];
+  const i=Math.min(s,3);
+  document.getElementById('rcri-pct').textContent=rs[i]+'%';
+  const l=document.getElementById('rcri-label'); l.textContent=ls[i]; l.className='risk-label '+cs[i];
+  const b=document.getElementById('rcri-bar'); b.style.width=Math.min(rs[i]*4,100)+'%'; b.style.background=bc[i];
+  const ns=['Cirugía alto riesgo','Cardiopatía isquémica','Insuf. cardíaca','ACV/EIT previo','DM insulino-req.','Creatinina>2.0'];
+  for(let j=0;j<6;j++){const el=document.getElementById('rc'+(j+1));el.textContent=(items[j]?'●':'○')+' '+ns[j];el.style.color=items[j]?'#dc2626':'var(--text2)';el.style.fontWeight=items[j]?'bold':'normal';}
+}
+
+function calcCaprini() {
+  let s=0;
+  const edad=parseInt(document.getElementById('edad').value)||0;
+  if(edad>=41&&edad<=60)s+=1;else if(edad>=61&&edad<=74)s+=2;else if(edad>=75)s+=3;
+  const imc=parseFloat(document.getElementById('imc').value)||0;
+  if(imc>25)s+=1;
+  const ci=document.getElementById('tipoCirugia').value;
+  if(ci==='intermedio')s+=1;if(ci==='alto')s+=2;
+  if(S.ants['dm']==='si')s+=1; if(S.ants['icc']==='si')s+=1;
+  CAPRINI_CHECKS.forEach(ch=>{if(document.getElementById(ch.id)?.checked){
+    if(ch.id==='cap-tvp'||ch.id==='cap-trombofilia')s+=3;
+    else if(ch.id==='cap-cancer')s+=2;
+    else s+=1;
+  }});
+  if(S.ants['tabaco']==='si')s+=1;
+  if(document.getElementById('esUrgencia').value==='si')s+=1;
+  document.getElementById('cap-badge').textContent=s;
+  let niv,lbl,cs,bc,rec;
+  if(s===0){niv='Muy Bajo';lbl='0 pts';cs='risk-low';bc='#16a34a';rec='Sin profilaxis farmacológica. Deambulación temprana.';}
+  else if(s<=2){niv='Bajo';lbl=s+' pts';cs='risk-low';bc='#16a34a';rec='MCG. Considerar HBPM si factores adicionales.';}
+  else if(s<=4){niv='Moderado';lbl=s+' pts';cs='risk-mod';bc='#d97706';rec='MCG + HBPM (Enoxaparina 40mg SC c/24h). CPI intraop.';}
+  else{niv='Alto';lbl=s+' pts';cs='risk-high';bc='#dc2626';rec='MCG + CPI + HBPM dosis alta. Profilaxis extendida 28-35d. Valorar filtro VCI si TVP previo.';}
+  document.getElementById('cap-nivel').textContent=niv;
+  const l=document.getElementById('cap-label'); l.textContent=lbl; l.className='risk-label '+cs;
+  document.getElementById('cap-bar').style.width=Math.min(s/10*100,100)+'%'; document.getElementById('cap-bar').style.background=bc;
+  document.getElementById('cap-rec').innerHTML='<strong>Rec:</strong> '+rec;
+}
+
+function calcARISCAT() {
+  let s=0;
+  const edad=parseInt(document.getElementById('edad').value)||0;
+  if(edad>=51&&edad<=80)s+=3;else if(edad>80)s+=16;
+  const sp=parseInt(document.getElementById('spo2').value)||100;
+  if(sp>=91&&sp<=95)s+=8;else if(sp<=90)s+=24;
+  const hb=parseFloat(document.getElementById('lab-hb').value)||15;
+  if(hb<10)s+=11;
+  const ci=document.getElementById('tipoCirugia').value;
+  if(ci==='intermedio')s+=15;if(ci==='alto')s+=24;
+  if(document.getElementById('esUrgencia').value==='si')s+=8;
+  document.getElementById('ariscat-badge').textContent=s;
+  let niv,cs,bc,pct;
+  if(s<26){niv='Bajo';cs='risk-low';bc='#16a34a';pct='1.6%';}
+  else if(s<45){niv='Intermedio';cs='risk-mod';bc='#d97706';pct='13.3%';}
+  else{niv='Alto';cs='risk-high';bc='#dc2626';pct='42.1%';}
+  document.getElementById('ariscat-nivel').textContent=niv;
+  const l=document.getElementById('ariscat-label'); l.textContent='Score: '+s+' | CPP: '+pct; l.className='risk-label '+cs;
+  document.getElementById('ariscat-bar').style.width=Math.min(s/60*100,100)+'%'; document.getElementById('ariscat-bar').style.background=bc;
+}
+
+// ====================================================
+//  LABS CHECK
+// ====================================================
+function checkLabs() {
+  const ranges={'lab-hb':{min:12,max:18},'lab-hto':{min:36,max:54},'lab-leuco':{min:4,max:11},
+    'lab-plaq':{min:150,max:400},'lab-gluc':{min:70,max:110},'lab-urea':{min:10,max:50},
+    'lab-crea':{min:0.5,max:1.2},'lab-na':{min:136,max:145},'lab-k':{min:3.5,max:5.1},
+    'lab-tp':{min:11,max:14},'lab-ttp':{min:25,max:40},'lab-inr':{min:0.8,max:1.2}};
+  Object.keys(ranges).forEach(id=>{
+    const el=document.getElementById(id); if(!el||!el.value){el&&el.classList.remove('lab-abn');return;}
+    const v=parseFloat(el.value),r=ranges[id];
+    v<r.min||v>r.max?el.classList.add('lab-abn'):el.classList.remove('lab-abn');
+  });
+  calcularRiesgos(); onFormChange();
+}
+
+// ====================================================
+//  STRIP UPDATE
+// ====================================================
+function updateStrip() {
+  const nom=document.getElementById('nombre').value||'— Nuevo Registro —';
+  const exp=document.getElementById('expediente').value;
+  const edad=document.getElementById('edad').value;
+  const gen=document.getElementById('genero').value;
+  const dx=document.getElementById('diagnostico').value;
+  document.getElementById('stripName').textContent=nom.toUpperCase();
+  const meta=[exp&&'Exp: '+exp, edad&&edad+' años', gen, dx].filter(Boolean).join(' | ');
+  document.getElementById('stripMeta').textContent=meta||'Complete los datos';
+}
+
+// ====================================================
+//  FORM CHANGE
+// ====================================================
+function onFormChange() {
+  S.isDirty=true;
+  const badge=document.getElementById('statusBadge');
+  badge.textContent='● Modificado'; badge.className='badge modified';
+  updateStrip();
+}
+
+// ====================================================
+//  GENERAR INDICACIONES
+// ====================================================
+function generarIndicaciones() {
+  const pre=[],trans=[],post=[];
+  const ci=document.getElementById('tipoCirugia').value;
+  const hb=parseFloat(document.getElementById('lab-hb').value)||14;
+  const sp=parseInt(document.getElementById('spo2').value)||98;
+  const caps=parseInt(document.getElementById('cap-badge').textContent)||0;
+  const rcris=parseInt(document.getElementById('rcri-badge').textContent)||0;
+  pre.push('VALORACIÓN PREANESTÉSICA PREVIA AL PROCEDIMIENTO QUIRÚRGICO.');
+  pre.push('VENDAJE DE MIEMBROS INFERIORES ANTES DE INDUCCIÓN ANESTÉSICA.');
+  if(hb<10||ci==='alto') pre.push('CRUZAR Y TIPAR 3 PAQUETES GLOBULARES Y 3 PLASMAS FRESCOS CONGELADOS.');
+  else if(ci==='intermedio') pre.push('CRUZAR Y TIPAR 2 PAQUETES GLOBULARES Y 2 PLASMAS FRESCOS CONGELADOS.');
+  pre.push('AYUNO 8 HORAS PREVIAS AL PROCEDIMIENTO QUIRÚRGICO (SÓLIDOS Y LÍQUIDOS).');
+  if(S.ants['dm']==='si') pre.push('MONITOREO DE GLUCEMIA CAPILAR PREOPERATORIA. META 140-180 mg/dL. INSULINA BASAL AL 50% DE DOSIS HABITUAL.');
+  if(ci!=='bajo') pre.push('PROFILAXIS ANTIBIÓTICA: CEFAZOLINA 2g IV 30-60 MIN ANTES DE INCISIÓN. REPETIR DOSIS CADA 4H SI CIRUGÍA PROLONGADA.');
+  pre.push('CONTINUAR MEDICACIÓN ANTIHIPERTENSIVA CON MÍNIMO SORBO DE AGUA. SUSPENDER IECA/ARA-II 24H PREVIAS.');
+  if(caps>=3) pre.push('ENOXAPARINA 40mg SC c/24h COMO PROFILAXIS ANTITROMBÓTICA. INICIAR 12H PREVIAS O 12H POSTOP SEGÚN TIPO DE ANESTESIA.');
+  trans.push('USAR SOLUCIONES CRISTALOIDES BALANCEADAS. MONITOREO CONSTANTE DE SIGNOS VITALES.');
+  trans.push('MANTENER EN RESERVA '+(ci==='alto'?'3 PAQUETES GLOBULARES Y 3 PLASMAS FRESCOS CONGELADOS':'2 PAQUETES GLOBULARES Y 2 PLASMAS FRESCOS CONGELADOS')+'.');
+  trans.push('COMPRESIÓN NEUMÁTICA INTERMITENTE DE MIEMBROS INFERIORES DURANTE EL PROCEDIMIENTO.');
+  if(S.ants['dm']==='si') trans.push('GLUCOMETRÍA INTRAOPERATORIA CADA HORA. META 140-180 mg/dL.');
+  if(ci==='alto') trans.push('CONSIDERAR LÍNEA ARTERIAL Y CATÉTER VENOSO CENTRAL. MONITOREO HEMODINÁMICO INVASIVO.');
+  trans.push('PREVENCIÓN DE HIPOTERMIA INTRAOPERATORIA (MANTA TÉRMICA, SOLUCIONES TIBIAS).');
+  if(rcris>=2) trans.push('MONITOREO ELECTROCARDIOGRÁFICO CONTINUO. DESFIBRILADOR DISPONIBLE.');
+  post.push('DEABULAR A LA BREVEDAD POSIBLE SEGÚN CONDICIÓN CLÍNICA.');
+  post.push('INICIAR DIETA NORMAL EN CUANTO EL MÉDICO SEÑALE. EGRESO POR PARTE DEL SERVICIO TRATANTE.');
+  post.push('ANALGESIA MULTIMODAL: KETOROLACO 30mg IV c/8h + METAMIZOL 1g IV c/8h. VALORAR OPIÁCEO SI DOLOR SEVERO.');
+  if(caps>=3) post.push('CONTINUAR ENOXAPARINA POR '+(ci==='alto'?'28-35':'7-10')+' DÍAS POSTOPERATORIOS.');
+  if(sp<=94||hb<10) post.push('OXIGENOTERAPIA SUPLEMENTARIA. META SpO₂ ≥95%. VIGILAR DATOS DE COMPLICACIÓN PULMONAR.');
+  if(S.ants['dm']==='si') post.push('REANUDAR HIPOGLUCEMIANTES ORALES AL TOLERAR VÍA ORAL. GLUCOMETRÍA c/6h POSTOP.');
+  document.getElementById('ind-pre').value=pre.join('\n');
+  document.getElementById('ind-trans').value=trans.join('\n');
+  document.getElementById('ind-post').value=post.join('\n');
+}
+
+// ====================================================
+//  COLLECT FORM DATA
+// ====================================================
+function collectFormData() {
+  const g=id=>document.getElementById(id)?.value||'';
+  const gn=id=>parseFloat(document.getElementById(id)?.value)||null;
+  const gb=id=>document.getElementById(id)?.checked||false;
+  return {
+    // Header
+    expediente:g('expediente'),nombre:g('nombre'),edad:g('edad'),genero:g('genero'),
+    fechaNac:g('fechaNac'),diagnostico:g('diagnostico'),cirugia:g('cirugia'),
+    tipoCirugia:g('tipoCirugia'),anestesia:g('anestesia'),esUrgencia:g('esUrgencia'),
+    servicio:g('servicio'),hospital:g('hospital'),fechaHora:g('fechaHora'),
+    tratamiento:g('tratamiento'),
+    // Antecedentes
+    ants:JSON.parse(JSON.stringify(S.ants)),
+    antDets:{
+      dm_tipo:g('dm-tipo'),hta_tiempo:g('hta-tiempo'),iam_cuando:g('iam-cuando'),
+      angina_ccs:g('angina-ccs'),icc_nyha:g('icc-nyha'),valv_tipo:g('valv-tipo'),
+      acv_cuando:g('acv-cuando'),hemo_tipo:g('hemo-tipo'),hepato_tipo:g('hepato-tipo'),
+      erc_etapa:g('erc-etapa'),transfusion_cuando:g('transfusion-cuando'),
+      tabaco_it:g('tabaco-it'),toxico_cual:g('toxico-cual'),alergia_cual:g('alergia-cual'),
+      qx_cuales:g('qx-cuales'),
+    },
+    otrosAntec:g('otros-antec'),
+    caprini:{
+      movilidad:gb('cap-movilidad'),obesidad:gb('cap-obesidad'),cancer:gb('cap-cancer'),
+      tvp:gb('cap-tvp'),trombofilia:gb('cap-trombofilia'),embarazo:gb('cap-embarazo'),
+      hormonal:gb('cap-hormonal'),varices:gb('cap-varices'),
+    },
+    // Exploración
+    peso:g('peso'),talla:g('talla'),imc:g('imc'),imcClasif:g('imc-clasif'),
+    ta:g('ta'),fc:g('fc'),fr:g('fr'),temp:g('temp'),spo2:g('spo2'),
+    asa:S.asa,mets:g('mets'),
+    expCardio:g('exp-cardio'),expAbd:g('exp-abd'),expExt:g('exp-ext'),expNeuro:g('exp-neuro'),
+    // Labs
+    labHemotipo:g('lab-hemotipo'),labHb:g('lab-hb'),labHto:g('lab-hto'),
+    labLeuco:g('lab-leuco'),labPlaq:g('lab-plaq'),labGluc:g('lab-gluc'),
+    labUrea:g('lab-urea'),labCrea:g('lab-crea'),labNa:g('lab-na'),labK:g('lab-k'),
+    labHba1c:g('lab-hba1c'),labTp:g('lab-tp'),labTtp:g('lab-ttp'),labInr:g('lab-inr'),
+    labFibr:g('lab-fibr'),labAst:g('lab-ast'),labAlt:g('lab-alt'),labBili:g('lab-bili'),
+    labAlb:g('lab-alb'),labOtros:g('lab-otros'),
+    // Estudios
+    rxEpoca:g('rx-epoca'),rxHallazgos:g('rx-hallazgos'),
+    ecgRitmo:g('ecg-ritmo'),ecgFc:g('ecg-fc'),ecgEje:g('ecg-eje'),ecgBav:g('ecg-bav'),
+    ecgBrd:g('ecg-brd'),ecgBri:g('ecg-bri'),ecgHvi:g('ecg-hvi'),ecgQpat:g('ecg-qpat'),
+    ecgOtros:g('ecg-otros'),otrosEstudios:g('otros-estudios'),
+    // Indicaciones
+    indPre:g('ind-pre'),indTrans:g('ind-trans'),indPost:g('ind-post'),
+    // Médico
+    medicoNombre:g('medico-nombre'),medicoCedula:g('medico-cedula'),medicoEsp:g('medico-esp'),
+    // Scores
+    rcri:document.getElementById('rcri-badge').textContent,
+    capriniScore:document.getElementById('cap-badge').textContent,
+    ariscat:document.getElementById('ariscat-badge').textContent,
+  };
+}
+
+// ====================================================
+//  POPULATE FORM FROM DATA
+// ====================================================
+function populateForm(d) {
+  const s=(id,v)=>{const el=document.getElementById(id);if(el&&v!==undefined&&v!==null)el.value=v;};
+  s('expediente',d.expediente);s('nombre',d.nombre);s('edad',d.edad);s('genero',d.genero);
+  s('fechaNac',d.fechaNac);s('diagnostico',d.diagnostico);s('cirugia',d.cirugia);
+  s('tipoCirugia',d.tipoCirugia);s('anestesia',d.anestesia);s('esUrgencia',d.esUrgencia);
+  s('servicio',d.servicio);s('hospital',d.hospital);s('fechaHora',d.fechaHora);
+  s('tratamiento',d.tratamiento);s('otros-antec',d.otrosAntec);
+  // Antecedentes
+  if(d.ants) Object.keys(d.ants).forEach(k=>toggleAnt(k,d.ants[k]));
+  if(d.antDets) {
+    const ad=d.antDets;
+    s('dm-tipo',ad.dm_tipo);s('hta-tiempo',ad.hta_tiempo);s('iam-cuando',ad.iam_cuando);
+    s('angina-ccs',ad.angina_ccs);s('icc-nyha',ad.icc_nyha);s('valv-tipo',ad.valv_tipo);
+    s('acv-cuando',ad.acv_cuando);s('hemo-tipo',ad.hemo_tipo);s('hepato-tipo',ad.hepato_tipo);
+    s('erc-etapa',ad.erc_etapa);s('transfusion-cuando',ad.transfusion_cuando);
+    s('tabaco-it',ad.tabaco_it);s('toxico-cual',ad.toxico_cual);
+    s('alergia-cual',ad.alergia_cual);s('qx-cuales',ad.qx_cuales);
+  }
+  if(d.caprini){
+    Object.keys(d.caprini).forEach(k=>{
+      const el=document.getElementById('cap-'+k);
+      if(el) el.checked=d.caprini[k];
+    });
+  }
+  // Exploración
+  s('peso',d.peso);s('talla',d.talla);s('ta',d.ta);s('fc',d.fc);
+  s('fr',d.fr);s('temp',d.temp);s('spo2',d.spo2);s('mets',d.mets);
+  s('exp-cardio',d.expCardio);s('exp-abd',d.expAbd);s('exp-ext',d.expExt);s('exp-neuro',d.expNeuro);
+  if(d.asa) setASA(d.asa);
+  // Labs
+  ['labHemotipo','labHb','labHto','labLeuco','labPlaq','labGluc','labUrea','labCrea','labNa','labK',
+   'labHba1c','labTp','labTtp','labInr','labFibr','labAst','labAlt','labBili','labAlb','labOtros'
+  ].forEach(k=>{const id='lab-'+k.replace('lab','').replace(/([A-Z])/g,'-$1').toLowerCase().replace('--','-').replace(/^-/,'');});
+  // Map lab fields
+  const labMap={labHemotipo:'lab-hemotipo',labHb:'lab-hb',labHto:'lab-hto',labLeuco:'lab-leuco',
+    labPlaq:'lab-plaq',labGluc:'lab-gluc',labUrea:'lab-urea',labCrea:'lab-crea',labNa:'lab-na',
+    labK:'lab-k',labHba1c:'lab-hba1c',labTp:'lab-tp',labTtp:'lab-ttp',labInr:'lab-inr',
+    labFibr:'lab-fibr',labAst:'lab-ast',labAlt:'lab-alt',labBili:'lab-bili',labAlb:'lab-alb',labOtros:'lab-otros'};
+  Object.keys(labMap).forEach(k=>s(labMap[k],d[k]));
+  // Estudios
+  s('rx-epoca',d.rxEpoca);s('rx-hallazgos',d.rxHallazgos);
+  s('ecg-ritmo',d.ecgRitmo);s('ecg-fc',d.ecgFc);s('ecg-eje',d.ecgEje);s('ecg-bav',d.ecgBav);
+  s('ecg-brd',d.ecgBrd);s('ecg-bri',d.ecgBri);s('ecg-hvi',d.ecgHvi);s('ecg-qpat',d.ecgQpat);
+  s('ecg-otros',d.ecgOtros);s('otros-estudios',d.otrosEstudios);
+  // Indicaciones
+  s('ind-pre',d.indPre);s('ind-trans',d.indTrans);s('ind-post',d.indPost);
+  // Médico
+  s('medico-nombre',d.medicoNombre);s('medico-cedula',d.medicoCedula);s('medico-esp',d.medicoEsp);
+  // Recalculate
+  calcularIMC();
+  calcularRiesgos();
+  checkLabs();
+  updateStrip();
+}
+
+// ====================================================
+//  API HELPERS
+// ====================================================
+async function apiPost(url, body) {
+  const res = await fetch(url, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(body),
+    redirect:'follow'
+  });
+  return await res.json();
+}
+
+async function apiGet(url, params) {
+  const qs = Object.keys(params).map(k=>k+'='+encodeURIComponent(params[k])).join('&');
+  const res = await fetch(url+'?'+qs, {redirect:'follow'});
+  return await res.json();
+}
+
+// ====================================================
+//  SAVE
+// ====================================================
+async function savePaciente() {
+  if(!S.appsScriptUrl){openSetup();return;}
+  const payload = collectFormData();
+  if(!payload.nombre&&!payload.expediente){showToast('Ingresa al menos nombre o expediente','warn');return;}
+  setSyncStatus('saving','Guardando...');
+  document.getElementById('btnSave').disabled=true;
+  document.getElementById('btnSave2').disabled=true;
+  try {
+    let res;
+    if(S.currentId) {
+      // UPDATE
+      res = await apiPost(S.appsScriptUrl, {action:'update', id:S.currentId, payload});
+    } else {
+      // NEW SAVE
+      res = await apiPost(S.appsScriptUrl, {action:'save', payload});
+    }
+    if(res.success) {
+      if(!S.currentId) S.currentId=res.id;
+      S.isDirty=false;
+      const badge=document.getElementById('statusBadge');
+      badge.textContent='✓ Guardado'; badge.className='badge saved';
+      const idBadge=document.getElementById('idBadge');
+      idBadge.textContent=S.currentId; idBadge.style.display='inline-block';
+      setSyncStatus('connected','Guardado ✓');
+      showToast('✅ Valoración guardada en Google Sheets — ID: '+S.currentId,'success');
+    } else {
+      throw new Error(res.error||'Error desconocido');
+    }
+  } catch(e) {
+    setSyncStatus('error','Error al guardar');
+    showToast('❌ Error al guardar: '+e.message,'error');
+  } finally {
+    document.getElementById('btnSave').disabled=false;
+    document.getElementById('btnSave2').disabled=false;
+  }
+}
+
+// ====================================================
+//  SEARCH
+// ====================================================
+let searchTimer = null;
+function debounceSearch() {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(doSearch, 500);
+}
+
+async function doSearch() {
+  if(!S.appsScriptUrl){showToast('Configura Google Sheets primero','warn');return;}
+  const q = document.getElementById('searchInput').value.trim();
+  if(!q){loadAll();return;}
+  const field = document.getElementById('searchField').value;
+  showSearchLoading();
+  try {
+    const res = await apiGet(S.appsScriptUrl,{action:'search',query:q,field});
+    renderSearchResults(res.results||[]);
+  } catch(e) {
+    showToast('Error en búsqueda: '+e.message,'error');
+    renderSearchResults([]);
+  }
+}
+
+async function loadAll() {
+  if(!S.appsScriptUrl){showToast('Configura Google Sheets primero','warn');return;}
+  showSearchLoading();
+  try {
+    const res = await apiGet(S.appsScriptUrl,{action:'getAll'});
+    renderSearchResults(res.results||[]);
+  } catch(e) {
+    showToast('Error: '+e.message,'error');
+    renderSearchResults([]);
+  }
+}
+
+function showSearchLoading() {
+  document.getElementById('searchResults').innerHTML = `
+    <div class="empty-state">
+      <div style="font-size:30px;animation:spin .8s linear infinite;display:inline-block">⏳</div>
+      <div style="margin-top:8px">Buscando en Google Sheets...</div>
+    </div>`;
+}
+
+function renderSearchResults(results) {
+  const container = document.getElementById('searchResults');
+  const footer = document.getElementById('searchFooter');
+  if(!results.length) {
+    container.innerHTML='<div class="empty-state"><div class="icon">🔍</div><div>No se encontraron registros</div></div>';
+    footer.style.display='none'; return;
+  }
+  footer.style.display='flex';
+  container.innerHTML = '<div class="patient-list">'+results.map(r=>`
+    <div class="patient-item" onclick="selectResult('${r.id}')" id="pi-${r.id}">
+      <div>
+        <div class="pi-name">${(r.nombre||'Sin nombre').toUpperCase()}</div>
+        <div class="pi-meta">Exp: ${r.expediente||'---'} | ${r.edad||'?'} años | ${r.genero||'---'} | ${r.diagnostico||'Sin diagnóstico'}</div>
+      </div>
+      <div class="pi-badges">
+        ${r.asa?'<span class="pi-badge">ASA '+r.asa+'</span>':''}
+        ${r.rcri?'<span class="pi-badge">RCRI '+r.rcri+'</span>':''}
+        <div class="pi-date">${(r.timestamp||'').split('(')[0].trim()}</div>
+      </div>
+    </div>`).join('')+'</div>';
+}
+
+function selectResult(id) {
+  S.selectedSearchId = id;
+  document.querySelectorAll('.patient-item').forEach(el=>el.classList.remove('selected'));
+  document.getElementById('pi-'+id)?.classList.add('selected');
+  document.getElementById('btnLoadSelected').disabled=false;
+}
+
+async function loadSelected() {
+  if(!S.selectedSearchId) return;
+  setSyncStatus('saving','Cargando...');
+  try {
+    const res = await apiGet(S.appsScriptUrl,{action:'getById',id:S.selectedSearchId});
+    if(res.success && res.data) {
+      // reset antecedentes first
+      ANT_DEFS.forEach(a=>toggleAnt(a.k,'no'));
+      populateForm(res.data);
+      S.currentId = S.selectedSearchId;
+      S.isDirty = false;
+      const badge=document.getElementById('statusBadge');
+      badge.textContent='✓ Cargado'; badge.className='badge saved';
+      const idBadge=document.getElementById('idBadge');
+      idBadge.textContent=S.currentId; idBadge.style.display='inline-block';
+      setSyncStatus('connected','Sheets conectado');
+      closeModal('modalSearch');
+      showToast('📂 Paciente cargado: '+(res.data.nombre||res.data.expediente||S.currentId),'success');
+    } else {
+      throw new Error(res.error||'No se pudo cargar');
+    }
+  } catch(e) {
+    setSyncStatus('error','Error al cargar');
+    showToast('❌ Error al cargar: '+e.message,'error');
+  }
+}
+
+// ====================================================
+//  NUEVO REGISTRO
+// ====================================================
+function nuevoRegistro() {
+  if(S.isDirty && !confirm('¿Descartar cambios actuales y crear nuevo registro?')) return;
+  S.currentId = null; S.isDirty = false; S.ants = {};
+  document.querySelectorAll('input[type=text],input[type=number],input[type=date],input[type=datetime-local],textarea').forEach(el=>el.value='');
+  document.querySelectorAll('input[type=checkbox]').forEach(el=>el.checked=false);
+  document.querySelectorAll('select').forEach(el=>el.selectedIndex=0);
+  ANT_DEFS.forEach(a=>toggleAnt(a.k,'no'));
+  S.asa=null;
+  document.querySelectorAll('.asa-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('asa-badge').textContent='—';
+  document.getElementById('asa-desc').style.display='none';
+  const badge=document.getElementById('statusBadge');
+  badge.textContent='● Sin guardar'; badge.className='badge unsaved';
+  document.getElementById('idBadge').style.display='none';
+  const now=new Date(); now.setMinutes(now.getMinutes()-now.getTimezoneOffset());
+  document.getElementById('fechaHora').value=now.toISOString().slice(0,16);
+  // restore defaults
+  const medico=localStorage.getItem('default_medico')||'';
+  const cedula=localStorage.getItem('default_cedula')||'';
+  if(medico) document.getElementById('medico-nombre').value=medico;
+  if(cedula) document.getElementById('medico-cedula').value=cedula;
+  calcularRiesgos(); generarIndicaciones(); updateStrip();
+  showTab('t-datos');
+  showToast('📋 Nuevo registro listo','info');
+}
+
+// ====================================================
+//  SYNC STATUS
+// ====================================================
+function setSyncStatus(status, text) {
+  const dot=document.getElementById('syncDot');
+  const txt=document.getElementById('syncText');
+  dot.className='sync-dot '+status;
+  txt.textContent=text;
+}
+
+// ====================================================
+//  MODALS
+// ====================================================
+function openSetup(){document.getElementById('modalSetup').classList.add('open')}
+function openSearch(){
+  document.getElementById('modalSearch').classList.add('open');
+  document.getElementById('searchInput').value='';
+  document.getElementById('searchResults').innerHTML='<div class="empty-state"><div class="icon">🔍</div><div>Busca por nombre, expediente o diagnóstico</div></div>';
+  document.getElementById('searchFooter').style.display='none';
+  document.getElementById('btnLoadSelected').disabled=true;
+  S.selectedSearchId=null;
+  if(S.appsScriptUrl) setTimeout(loadAll,100);
+}
+function closeModal(id){document.getElementById(id).classList.remove('open')}
+document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open')}));
+
+// ====================================================
+//  TOAST
+// ====================================================
+function showToast(msg, type='info') {
+  const icons={success:'✅',error:'❌',info:'ℹ️',warn:'⚠️'};
+  const toast=document.createElement('div');
+  toast.className='toast '+type;
+  toast.innerHTML=`<span>${icons[type]}</span><span>${msg}</span>`;
+  document.getElementById('toastContainer').appendChild(toast);
+  setTimeout(()=>{toast.style.animation='slideOut .3s ease forwards';setTimeout(()=>toast.remove(),300)},3500);
+}
+
+// ====================================================
+//  PRINT
+// ====================================================
+function imprimirDoc() {
+  generarIndicaciones();
+  buildPrint();
+  document.querySelector('.screen-only').style.display='none';
+  document.getElementById('print-doc').style.display='block';
+  window.print();
+  setTimeout(()=>{
+    document.querySelector('.screen-only').style.display='';
+    document.getElementById('print-doc').style.display='none';
+  },1200);
+}
+
+function v(id){return document.getElementById(id)?.value||''}
+function aV(k){return S.ants[k]==='si'?'SÍ':'NO'}
+
+function buildPrint() {
+  const d=collectFormData();
+  const html=`
+<div class="doc-title">NOTA VALORACIÓN INTEGRAL PREOPERATORIA</div>
+<div class="doc-header-grid">
+  <div class="doc-field"><strong>Nombre:</strong> ${(d.nombre||'').toUpperCase()}</div>
+  <div class="doc-field"><strong>Expediente:</strong> ${d.expediente||'---'}</div>
+  <div class="doc-field"><strong>Servicio Solicitante:</strong> ${d.servicio||'---'}</div>
+  <div class="doc-field"><strong>Edad:</strong> ${d.edad||'---'}</div>
+  <div class="doc-field"><strong>Fecha de Valoración:</strong> ${(d.fechaHora||'').replace('T',' ')}</div>
+  <div class="doc-field"><strong>Género:</strong> ${d.genero||'---'}</div>
+  <div class="doc-field"><strong>Cirugía Programada:</strong> ${d.cirugia||'---'}</div>
+  <div class="doc-field"><strong>Diagnóstico:</strong> ${d.diagnostico||'---'}</div>
+  <div style="grid-column:1/-1" class="doc-field"><strong>Anestesia Programada:</strong> ${(d.anestesia||'LA QUE EL MÉDICO SEÑALE').toUpperCase()}</div>
+</div>
+<div style="font-size:8.5pt;margin-bottom:4px"><strong>Diabetes Mellitus:</strong> ${aV('dm')} &nbsp; <strong>Tipo:</strong> ${d.ants?.dm==='si'?d.antDets?.dm_tipo||'---':'NO APLICA'} &nbsp; <strong>Tiempo evolución:</strong> ${d.ants?.dm==='si'?'VER EXPEDIENTE':'NO APLICA'}</div>
+<div style="font-size:8.5pt;font-weight:bold;margin-bottom:4px">Complicaciones Crónicas Específicas:</div>
+<table style="width:100%;font-size:8pt;border-collapse:collapse;margin-bottom:7px">
+  <tr>
+    <td style="width:25%;padding:1px 0"><strong>Hipertensión Arterial:</strong> ${aV('hta')}</td>
+    <td style="width:25%;padding:1px 0"><strong>ACV:</strong> ${d.ants?.acv==='si'?d.antDets?.acv_cuando:'NO'}</td>
+    <td style="width:25%;padding:1px 0"><strong>HTA Tiempo:</strong> ${d.ants?.hta==='si'?d.antDets?.hta_tiempo:'NO APLICA'}</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td style="padding:1px 0"><strong>IAM previo:</strong> ${aV('iam')}</td>
+    <td style="padding:1px 0"><strong>Cuando:</strong> ${d.ants?.iam==='si'?d.antDets?.iam_cuando:'NO APLICA'}</td>
+    <td style="padding:1px 0"><strong>Hemoglobinopatías:</strong> ${aV('hemo')}</td>
+    <td style="padding:1px 0"><strong>Tipo:</strong> ${d.ants?.hemo==='si'?d.antDets?.hemo_tipo:'NO APLICA'}</td>
+  </tr>
+  <tr>
+    <td style="padding:1px 0"><strong>Angina:</strong> ${aV('angina')}</td>
+    <td style="padding:1px 0"><strong>CCS:</strong> ${d.ants?.angina==='si'?d.antDets?.angina_ccs:'NO APLICA'}</td>
+    <td style="padding:1px 0"><strong>Hepatopatía:</strong> ${aV('hepato')}</td>
+    <td style="padding:1px 0"><strong>Child-Pugh:</strong> ${d.ants?.hepato==='si'?d.antDets?.hepato_tipo:'NO APLICA'}</td>
+  </tr>
+  <tr>
+    <td style="padding:1px 0"><strong>Insuficiencia Cardíaca:</strong> ${aV('icc')}</td>
+    <td style="padding:1px 0"><strong>NYHA:</strong> ${d.ants?.icc==='si'?d.antDets?.icc_nyha:'NO APLICA'}</td>
+    <td style="padding:1px 0"><strong>Enfermedad Renal:</strong> ${aV('erc')}</td>
+    <td style="padding:1px 0"><strong>Etapa:</strong> ${d.ants?.erc==='si'?d.antDets?.erc_etapa:'NO APLICA'}</td>
+  </tr>
+  <tr>
+    <td style="padding:1px 0"><strong>Valvulopatías/Arritmias:</strong> ${aV('valv')}</td>
+    <td style="padding:1px 0"><strong>Tipo:</strong> ${d.ants?.valv==='si'?d.antDets?.valv_tipo:'NO APLICA'}</td>
+    <td style="padding:1px 0"><strong>Transfusionales:</strong> ${aV('transfusion')}</td>
+    <td style="padding:1px 0"><strong>Cuando:</strong> ${d.ants?.transfusion==='si'?d.antDets?.transfusion_cuando:'NO APLICA'}</td>
+  </tr>
+  <tr>
+    <td style="padding:1px 0"><strong>Tabaquismo:</strong> ${aV('tabaco')}</td>
+    <td style="padding:1px 0"><strong>IT:</strong> ${d.ants?.tabaco==='si'?d.antDets?.tabaco_it:'NO APLICA'}</td>
+    <td style="padding:1px 0"><strong>Toxicomanías:</strong> ${aV('toxico')}</td>
+    <td style="padding:1px 0"><strong>Cual:</strong> ${d.ants?.toxico==='si'?d.antDets?.toxico_cual:'NO APLICA'}</td>
+  </tr>
+  <tr>
+    <td style="padding:1px 0"><strong>Alérgicos:</strong> ${aV('alergia')}</td>
+    <td colspan="3" style="padding:1px 0"><strong>Especifique:</strong> ${d.ants?.alergia==='si'?d.antDets?.alergia_cual:'NO APLICA'}</td>
+  </tr>
+</table>
+<div style="font-size:8.5pt;margin-bottom:4px"><strong>Quirúrgicos Previos:</strong> ${d.ants?.qx==='si'?d.antDets?.qx_cuales:'NO'}</div>
+${d.otrosAntec?'<div style="font-size:8.5pt;margin-bottom:4px"><strong>Otros:</strong> '+d.otrosAntec+'</div>':''}
+<hr class="doc-hr">
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px">
+  <div>
+    <div class="doc-section-title">Exploración Física:</div>
+    <div style="font-size:8pt"><strong>Peso:</strong> ${d.peso}kg &nbsp; <strong>Talla:</strong> ${d.talla}cm &nbsp; <strong>IMC:</strong> ${d.imc} (${d.imcClasif})</div>
+    <div style="font-size:8pt"><strong>TA:</strong> ${d.ta} &nbsp; <strong>FC:</strong> ${d.fc}lpm &nbsp; <strong>FR:</strong> ${d.fr}rpm &nbsp; <strong>T°:</strong> ${d.temp}°C &nbsp; <strong>SpO₂:</strong> ${d.spo2}%</div>
+    <div style="font-size:8pt;margin-top:2px"><strong>Clasificación:</strong> ${d.asa?'ASA '+d.asa:'---'} — ${({bajo:'BAJO RIESGO',intermedio:'RIESGO INTERMEDIO',alto:'ALTO RIESGO'}[d.tipoCirugia])||'---'}</div>
+  </div>
+  <div>
+    <div class="doc-section-title">Tratamiento Actual:</div>
+    <div style="font-size:8pt">${(d.tratamiento||'NINGUNO').toUpperCase()}</div>
+  </div>
+</div>
+<hr class="doc-hr">
+<div class="doc-section-title">Laboratorios:</div>
+<div style="font-size:8pt;margin-bottom:5px">
+  <strong>Hemotipo:</strong> (${d.labHemotipo||'---'}) &nbsp;<strong>Hb:</strong> ${d.labHb||'---'} &nbsp;<strong>Hto:</strong> ${d.labHto||'---'}% &nbsp;<strong>Leucos:</strong> ${d.labLeuco||'---'}×10³ &nbsp;<strong>Plaq:</strong> ${d.labPlaq||'---'}×10³<br>
+  <strong>Glucosa:</strong> ${d.labGluc||'---'} &nbsp;<strong>Urea:</strong> ${d.labUrea||'---'} &nbsp;<strong>Creatinina:</strong> ${d.labCrea||'---'} &nbsp;<strong>Na:</strong> ${d.labNa||'---'} &nbsp;<strong>K:</strong> ${d.labK||'---'}<br>
+  <strong>TP:</strong> ${d.labTp||'---'} &nbsp;<strong>TTP:</strong> ${d.labTtp||'---'} &nbsp;<strong>INR:</strong> ${d.labInr||'---'} &nbsp;<strong>Otras Alteraciones:</strong> ${(d.labOtros||'NEGADAS').toUpperCase()}
+</div>
+<div style="font-size:8pt;margin-bottom:5px"><strong>Radiografía — Época:</strong> ${d.rxEpoca||'---'} &nbsp;<strong>Hallazgos:</strong> ${(d.rxHallazgos||'NEGADOS').toUpperCase()}</div>
+<div style="font-size:8pt;margin-bottom:6px">
+  <strong>ECG — Ritmo:</strong> ${d.ecgRitmo||'Sinusal'} &nbsp;<strong>FC:</strong> ${d.ecgFc||'---'} &nbsp;<strong>Eje:</strong> ${d.ecgEje||'---'}° &nbsp;<strong>BAV:</strong> ${d.ecgBav||'NO'} &nbsp;<strong>BRD:</strong> ${d.ecgBrd||'NO'} &nbsp;<strong>BRI:</strong> ${d.ecgBri||'NO'} &nbsp;<strong>HVI:</strong> ${d.ecgHvi||'NO'} &nbsp;<strong>Q pat:</strong> ${d.ecgQpat||'NO'} &nbsp;<strong>Otras:</strong> ${(d.ecgOtros||'NEGADAS').toUpperCase()}
+</div>
+<hr class="doc-hr">
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:8.5pt;margin-bottom:6px">
+  <div><strong>Riesgo quirúrgico:</strong> ${d.asa?'ASA '+d.asa:'---'} — ${({bajo:'BAJO RIESGO',intermedio:'RIESGO INTERMEDIO',alto:'ALTO RIESGO'}[d.tipoCirugia])||'---'}</div>
+  <div><strong>Gupta Riesgo IAM perioperatorio hasta 30 días:</strong> ${document.getElementById('rcri-pct').textContent} complicaciones cardíacas</div>
+  <div><strong>RCRI (Lee):</strong> ${d.rcri||'0'} puntos → ${document.getElementById('rcri-label').textContent}</div>
+  <div><strong>Ariscat Riesgo de complicaciones Pulmonares:</strong> ${document.getElementById('ariscat-badge').textContent} PUNTOS ${document.getElementById('ariscat-nivel').textContent.toUpperCase()}</div>
+  <div><strong>Caprini (Trombótico):</strong> ${d.capriniScore||'0'} PUNTOS, RIESGO ${document.getElementById('cap-nivel').textContent.toUpperCase()}</div>
+</div>
+<hr class="doc-hr">
+<div style="font-size:8.5pt;margin-bottom:5px"><strong>Preoperatorias:</strong> ${(d.indPre||'---').replace(/\n/g,'<br>')}</div>
+<div style="font-size:8.5pt;margin-bottom:5px"><strong>Transoperatorias:</strong> ${(d.indTrans||'---').replace(/\n/g,'<br>')}</div>
+<div style="font-size:8.5pt;margin-bottom:5px"><strong>Postoperatorias:</strong> ${(d.indPost||'---').replace(/\n/g,'<br>')}</div>
+<div class="doc-firma">${(d.medicoNombre||'MÉDICO VALORADOR').toUpperCase()} &nbsp;&nbsp; CÉDULA: ${d.medicoCedula||'---'}</div>`;
+  document.getElementById('doc-content').innerHTML=html;
+}
+</script>
+</body>
+</html>
